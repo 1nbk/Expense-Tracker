@@ -3,14 +3,21 @@ from tkinter import ttk, messagebox
 import customtkinter as ctk
 from typing import Any
 from datetime import datetime
+import json
+import os
 
 # Configure CustomTkinter
 ctk.set_appearance_mode("light")  # Default mode
 ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 class ExpenseTracker(ctk.CTk):
+    DATA_FILE = "expenses.json"
+    
     def __init__(self):
         super().__init__()
+        
+        # Override close protocol (HCI Error Prevention)
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.title("Student Budget & Expense Tracker")
         self.geometry("1000x700")
@@ -22,6 +29,9 @@ class ExpenseTracker(ctk.CTk):
         self._feedback_timer = None
         self.budget_limit = 1000.0
         self._budget_locked = False
+        
+        # Load local data if available
+        self.load_data()
         
         # Color Palette (Modern)
         self.colors = {
@@ -114,14 +124,20 @@ class ExpenseTracker(ctk.CTk):
         self.budget_entry_frame.pack(pady=(0, 15))
         
         self.budget_entry = ctk.CTkEntry(self.budget_entry_frame, placeholder_text="Set Budget", width=100, height=30, font=("Poppins", 13))
-        self.budget_entry.insert(0, "1000")
+        self.budget_entry.insert(0, f"{self.budget_limit:.0f}")
+        
+        if self._budget_locked:
+             self.budget_entry.configure(state="disabled", text_color="gray")
+             
         self.budget_entry.pack(side="left", padx=(0, 5))
         
         self.budget_btn = ctk.CTkButton(
             self.budget_entry_frame, 
-            text="Set Budget", 
+            text="Budget Locked" if self._budget_locked else "Set Budget", 
             width=80, 
             height=30, 
+            state="disabled" if self._budget_locked else "normal",
+            fg_color="gray" if self._budget_locked else None,
             command=self.update_budget,
             font=("Poppins", 12, "bold"),
             corner_radius=8
@@ -204,6 +220,10 @@ class ExpenseTracker(ctk.CTk):
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Populate Treeview from loaded data
+        for exp in self.expenses:
+            self.tree.insert("", tk.END, values=(exp[0], exp[1], exp[2], f"{exp[3]:.2f}"))
         
         # --- Footer ---
         self.footer_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -293,11 +313,14 @@ class ExpenseTracker(ctk.CTk):
         appearance = ctk.get_appearance_mode().lower()
         colors = self.colors[appearance]
         
-        color = colors["text"]
-        if msg_type == "error": color = colors["error"]
-        elif msg_type == "success": color = colors["success"]
-        
-        self.feedback_label.configure(text=message, text_color=color)
+        # HCI: Critical Error Feedback via Modal Pop-ups
+        if msg_type == "error":
+            messagebox.showerror("Error", message)
+            self.feedback_label.configure(text=message, text_color=colors["error"])
+        else:
+            color = colors["text"]
+            if msg_type == "success": color = colors["success"]
+            self.feedback_label.configure(text=message, text_color=color)
         
         if self._feedback_timer is not None:
             self.after_cancel(self._feedback_timer)
@@ -336,6 +359,8 @@ class ExpenseTracker(ctk.CTk):
             self.tree.insert("", tk.END, values=(timestamp, desc, cat, f"{amount:.2f}"))
             
             self.update_stats()
+            # Save after adding
+            self.save_data()
             self.show_feedback(f"Added '{desc}'", "success")
             
             # HCI: Clear form for fast entry
@@ -371,6 +396,8 @@ class ExpenseTracker(ctk.CTk):
             self.tree.delete(item)
             
         self.update_stats()
+        # Save after deleting
+        self.save_data()
         self.show_feedback("Deleted item.", "success")
 
     def clear_all_expenses(self):
@@ -385,6 +412,8 @@ class ExpenseTracker(ctk.CTk):
             for item in self.tree.get_children():
                 self.tree.delete(item)
             self.update_stats()
+            # Save after clearing
+            self.save_data()
             self.show_feedback("All records cleared.", "success")
 
     def update_budget(self):
@@ -414,6 +443,8 @@ class ExpenseTracker(ctk.CTk):
                 self.budget_btn.configure(state="disabled", text="Budget Locked", fg_color="gray")
                 
                 self.update_stats()
+                # Save after locking budget
+                self.save_data()
                 self.show_feedback(f"Monthly budget confirmed at GH₵ {new_limit:.2f}", "success")
             else:
                 self.show_feedback("Budget update cancelled.", "default")
@@ -455,6 +486,34 @@ class ExpenseTracker(ctk.CTk):
             self.status_text.configure(text=f"Safe (Limit: GH₵ {self.budget_limit:.0f})", text_color=colors["text"])
             self.progress_bar.configure(progress_color=colors["accent"])
             self.percentage_label.configure(text_color=colors["accent"])
+
+    def load_data(self):
+        if os.path.exists(self.DATA_FILE):
+            try:
+                with open(self.DATA_FILE, "r") as f:
+                    data = json.load(f)
+                    self.expenses = data.get("expenses", [])
+                    self.budget_limit = data.get("budget_limit", 1000.0)
+                    self._budget_locked = data.get("budget_locked", False)
+            except Exception as e:
+                print(f"Error loading data: {e}")
+                self.expenses = []
+
+    def save_data(self):
+        try:
+            data = {
+                "expenses": self.expenses,
+                "budget_limit": self.budget_limit,
+                "budget_locked": self._budget_locked
+            }
+            with open(self.DATA_FILE, "w") as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f"Error saving data: {e}")
+
+    def on_closing(self):
+        if messagebox.askyesno("Confirm Exit", f"Are you sure you want to close the {self.title()}?\nYour data is safely auto-saved."):
+            self.destroy()
 
 if __name__ == "__main__":
     app = ExpenseTracker()
