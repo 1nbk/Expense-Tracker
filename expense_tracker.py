@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import customtkinter as ctk
 from typing import Any
 from datetime import datetime
@@ -21,6 +21,7 @@ class ExpenseTracker(ctk.CTk):
         self.total_amount = 0.0
         self._feedback_timer = None
         self.budget_limit = 1000.0
+        self._budget_locked = False
         
         # Color Palette (Modern)
         self.colors = {
@@ -106,8 +107,26 @@ class ExpenseTracker(ctk.CTk):
         self.percentage_label = ctk.CTkLabel(self.prog_frame, text="0%", font=("Poppins", 14, "bold"))
         self.percentage_label.pack(side="left")
         
-        self.status_text = ctk.CTkLabel(self.status_card, text="Safe (Limit: GH₵ 1000)", font=("Poppins", 13, "italic"))
-        self.status_text.pack(pady=(5, 15))
+        self.status_text = ctk.CTkLabel(self.status_card, text="Safe", font=("Poppins", 13, "italic"))
+        self.status_text.pack(pady=(5, 5))
+        
+        self.budget_entry_frame = ctk.CTkFrame(self.status_card, fg_color="transparent")
+        self.budget_entry_frame.pack(pady=(0, 15))
+        
+        self.budget_entry = ctk.CTkEntry(self.budget_entry_frame, placeholder_text="Set Budget", width=100, height=30, font=("Poppins", 13))
+        self.budget_entry.insert(0, "1000")
+        self.budget_entry.pack(side="left", padx=(0, 5))
+        
+        self.budget_btn = ctk.CTkButton(
+            self.budget_entry_frame, 
+            text="Set Budget", 
+            width=80, 
+            height=30, 
+            command=self.update_budget,
+            font=("Poppins", 12, "bold"),
+            corner_radius=8
+        )
+        self.budget_btn.pack(side="left")
         
         # 3. Content Area (Form and Table)
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -307,6 +326,40 @@ class ExpenseTracker(ctk.CTk):
         self.update_stats()
         self.show_feedback("Deleted item.", "success")
 
+    def update_budget(self):
+        if self._budget_locked:
+             self.show_feedback("Budget is already set for this month.", "error")
+             return
+             
+        try:
+            val = self.budget_entry.get().strip()
+            new_limit = float(val)
+            if new_limit <= 0:
+                 self.show_feedback("Error: Budget must be positive!", "error")
+                 return
+            
+            # HCI: Confirmation Step
+            confirm = messagebox.askyesno(
+                "Confirm Monthly Budget", 
+                f"Are you sure you want to set your monthly budget to GH₵ {new_limit:.2f}?\n\nThis can only be set once per month."
+            )
+            
+            if confirm:
+                self.budget_limit = new_limit
+                self._budget_locked = True
+                
+                # Update UI to locked state
+                self.budget_entry.configure(state="disabled", text_color="gray")
+                self.budget_btn.configure(state="disabled", text="Budget Locked", fg_color="gray")
+                
+                self.update_stats()
+                self.show_feedback(f"Monthly budget confirmed at GH₵ {new_limit:.2f}", "success")
+            else:
+                self.show_feedback("Budget update cancelled.", "default")
+                
+        except ValueError:
+            self.show_feedback("Error: Invalid budget amount!", "error")
+
     def update_stats(self):
         self.total_amount = sum(exp[3] for exp in self.expenses)
         self.total_val_label.configure(text=f"GH₵ {self.total_amount:.2f}")
@@ -330,14 +383,15 @@ class ExpenseTracker(ctk.CTk):
              # Make it look completely empty at 0
              self.progress_bar.configure(progress_color=trough_color)
              self.percentage_label.configure(text_color=colors["text"])
+             self.status_text.configure(text=f"Safe (Limit: GH₵ {self.budget_limit:.0f})", text_color=colors["text"])
         elif self.total_amount > self.budget_limit:
             self.total_val_label.configure(text_color=colors["error"])
-            self.status_text.configure(text="Warning: Budget Exceeded!", text_color=colors["error"])
+            self.status_text.configure(text=f"Warning: Budget (GH₵ {self.budget_limit:.0f}) Exceeded!", text_color=colors["error"])
             self.progress_bar.configure(progress_color=colors["error"])
             self.percentage_label.configure(text_color=colors["error"])
         else:
             self.total_val_label.configure(text_color=colors["text"])
-            self.status_text.configure(text="Safe (Limit: GH₵ 1000)", text_color=colors["text"])
+            self.status_text.configure(text=f"Safe (Limit: GH₵ {self.budget_limit:.0f})", text_color=colors["text"])
             self.progress_bar.configure(progress_color=colors["accent"])
             self.percentage_label.configure(text_color=colors["accent"])
 
