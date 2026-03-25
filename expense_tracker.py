@@ -95,12 +95,19 @@ class ExpenseTracker(ctk.CTk):
         self.status_title = ctk.CTkLabel(self.status_card, text="Budget Overview", font=("Poppins", 16))
         self.status_title.pack(pady=(15, 0))
         
-        self.progress_bar = ctk.CTkProgressBar(self.status_card, width=250)
+        # Progress Bar Frame (to center the percentage next to it or below)
+        self.prog_frame = ctk.CTkFrame(self.status_card, fg_color="transparent")
+        self.prog_frame.pack(pady=(10, 0))
+        
+        self.progress_bar = ctk.CTkProgressBar(self.prog_frame, width=220, height=12)
         self.progress_bar.set(0)
-        self.progress_bar.pack(pady=(10, 5))
+        self.progress_bar.pack(side="left", padx=(0, 10))
+        
+        self.percentage_label = ctk.CTkLabel(self.prog_frame, text="0%", font=("Poppins", 14, "bold"))
+        self.percentage_label.pack(side="left")
         
         self.status_text = ctk.CTkLabel(self.status_card, text="Safe (Limit: GH₵ 1000)", font=("Poppins", 13, "italic"))
-        self.status_text.pack(pady=(0, 15))
+        self.status_text.pack(pady=(5, 15))
         
         # 3. Content Area (Form and Table)
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -156,7 +163,8 @@ class ExpenseTracker(ctk.CTk):
         self.tree_style.theme_use("clam")
         self.configure_tree_style()
         
-        self.tree_frame = tk.Frame(self.list_card, bg="#FFFFFF") 
+        initial_bg = self.colors["light"]["card"] if ctk.get_appearance_mode() == "Light" else self.colors["dark"]["card"]
+        self.tree_frame = tk.Frame(self.list_card, bg=initial_bg) 
         self.tree_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
         
         columns = ("date", "desc", "category", "amount")
@@ -200,13 +208,17 @@ class ExpenseTracker(ctk.CTk):
         appearance = ctk.get_appearance_mode()
         c = self.colors[appearance.lower()]
         
+        # Update standard frame background
+        self.tree_frame.configure(bg=c["card"])
+        
         self.tree_style.configure(
             "Treeview",
             background=c["card"],
             foreground=c["text"],
             fieldbackground=c["card"],
-            rowheight=45, # Taller rows for the bigger font
-            font=("Poppins", 14) # Increased font size as requested
+            rowheight=45,
+            font=("Poppins", 14),
+            borderwidth=0
         )
         self.tree_style.map(
             "Treeview",
@@ -219,6 +231,16 @@ class ExpenseTracker(ctk.CTk):
             foreground=c["text"],
             font=("Poppins", 14, "bold"),
             borderwidth=0
+        )
+        
+        # Scrollbar styling for a modern look in both themes
+        self.tree_style.configure(
+            "TScrollbar",
+            arrowcolor=c["text"],
+            background=c["card"],
+            troughcolor=c["bg"],
+            borderwidth=0,
+            relief="flat"
         )
 
     def toggle_theme(self):
@@ -284,21 +306,31 @@ class ExpenseTracker(ctk.CTk):
     def update_stats(self):
         self.total_amount = sum(exp[3] for exp in self.expenses)
         self.total_val_label.configure(text=f"GH₵ {self.total_amount:.2f}")
+        
+        # Calculate percentage
+        percent = (self.total_amount / self.budget_limit) * 100
+        self.percentage_label.configure(text=f"{int(percent)}%")
+        
         progress = min(self.total_amount / self.budget_limit, 1.0)
         self.progress_bar.set(progress)
+        
         appearance = ctk.get_appearance_mode().lower()
         colors = self.colors[appearance]
+        
+        # Color coding stats and progress
         if self.total_amount <= 0:
              self.progress_bar.configure(progress_color=colors["border"])
-        else:
-             self.progress_bar.configure(progress_color=colors["accent"])
-        if self.total_amount > self.budget_limit:
+             self.percentage_label.configure(text_color=colors["text"])
+        elif self.total_amount > self.budget_limit:
             self.total_val_label.configure(text_color=colors["error"])
             self.status_text.configure(text="Warning: Budget Exceeded!", text_color=colors["error"])
             self.progress_bar.configure(progress_color=colors["error"])
+            self.percentage_label.configure(text_color=colors["error"])
         else:
             self.total_val_label.configure(text_color=colors["text"])
             self.status_text.configure(text="Safe (Limit: GH₵ 1000)", text_color=colors["text"])
+            self.progress_bar.configure(progress_color=colors["accent"])
+            self.percentage_label.configure(text_color=colors["accent"])
 
 if __name__ == "__main__":
     app = ExpenseTracker()
