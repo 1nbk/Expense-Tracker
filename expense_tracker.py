@@ -1,301 +1,306 @@
 import tkinter as tk
 from tkinter import ttk
+import customtkinter as ctk
 from typing import Any
+from datetime import datetime
 
-class ExpenseTracker:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Student Budget & Expense Tracker")
-        self.root.geometry("800x550")
-        self.root.minsize(750, 500)
+# Configure CustomTkinter
+ctk.set_appearance_mode("light")  # Default mode
+ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+
+class ExpenseTracker(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("Student Budget & Expense Tracker")
+        self.geometry("1000x700")
+        self.minsize(950, 650)
         
         # State
-        self.is_dark_mode = False
-        self.expenses = [] # List of tuples (Description, Category, Amount)
+        self.expenses = [] # List of tuples (Date/Time, Description, Category, Amount)
         self.total_amount = 0.0
         self._feedback_timer = None
+        self.budget_limit = 1000.0
         
-        # UI variables so pyre2 doesn't complain later
-        self.header_frame: Any = None
-        self.title_label: Any = None
-        self.toggle_btn: Any = None
-        self.input_frame: Any = None
-        self.desc_entry: Any = None
-        self.amount_entry: Any = None
-        self.category_var: Any = None
-        self.category_menu: Any = None
-        self.add_btn: Any = None
-        self.feedback_label: Any = None
-        self.list_frame: Any = None
-        self.tree: Any = None
-        self.bottom_frame: Any = None
-        self.total_label: Any = None
-        self.delete_btn: Any = None
-        self.style: Any = None
+        # Color Palette (Modern)
+        self.colors = {
+            "light": {
+                "bg": "#F8FAFC",
+                "card": "#FFFFFF",
+                "text": "#1E293B",
+                "accent": "#3B82F6",
+                "success": "#10B981",
+                "error": "#EF4444",
+                "border": "#E2E8F0"
+            },
+            "dark": {
+                "bg": "#0F172A",
+                "card": "#1E293B",
+                "text": "#F8FAFC",
+                "accent": "#60A5FA",
+                "success": "#34D399",
+                "error": "#F87171",
+                "border": "#334155"
+            }
+        }
         
-        # consistent color palette dictionary for styling
-        self.colors_light = {
-            'bg': '#f4f6f8',
-            'fg': '#333333',
-            'entry_bg': '#ffffff',
-            'list_bg': '#ffffff',
-            'btn_bg': '#e0e0e0',
-            'highlight': '#0056b3',
-            'highlight_fg': '#ffffff',
-            'error': '#d32f2f',
-            'error_fg': '#ffffff',
-            'success': '#388e3c'
-        }
-        self.colors_dark = {
-            'bg': '#1e1e1e',
-            'fg': '#e0e0e0',
-            'entry_bg': '#2d2d2d',
-            'list_bg': '#2d2d2d',
-            'btn_bg': '#424242',
-            'highlight': '#4dabf7',
-            'highlight_fg': '#ffffff',
-            'error': '#ff5252',
-            'error_fg': '#ffffff',
-            'success': '#69f0ae'
-        }
-        self.c = self.colors_light
-        self.root.configure(bg=self.c['bg'])
-
         self.setup_ui()
-        self.apply_theme()
-
+        
     def setup_ui(self):
-        # 1. Header Frame (Minimalist design)
-        self.header_frame = tk.Frame(self.root)
-        self.header_frame.pack(fill=tk.X, padx=20, pady=(20, 10))
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         
-        self.title_label = tk.Label(self.header_frame, text="Expense Tracker", font=("Poppins", 18, "bold"))
-        self.title_label.pack(side=tk.LEFT)
+        # 1. Header & Stats Section
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.header_frame.grid(row=0, column=0, padx=30, pady=(30, 20), sticky="ew")
+        self.header_frame.grid_columnconfigure(0, weight=1)
         
-        # dark mode switch
-        self.toggle_btn = tk.Button(self.header_frame, text="🌙 Dark Mode", command=self.toggle_dark_mode, 
-                                    relief=tk.FLAT, font=("Poppins", 10, "bold"), padx=10, pady=5)
-        self.toggle_btn.pack(side=tk.RIGHT)
-
-        # 2. Input Frame
-        self.input_frame = tk.Frame(self.root)
-        self.input_frame.pack(fill=tk.X, padx=20, pady=10)
+        self.title_label = ctk.CTkLabel(
+            self.header_frame, 
+            text="Student Expense Tracker", 
+            font=("Poppins", 32, "bold")
+        )
+        self.title_label.grid(row=0, column=0, sticky="w")
         
-        # Input Fields using Grid Layout for organized structure
-        self.input_frame.columnconfigure(1, weight=1, minsize=150) # Allow Description field to scale responsively
+        self.theme_toggle = ctk.CTkButton(
+            self.header_frame, 
+            text="🌙 Dark Mode", 
+            width=140,
+            height=40,
+            corner_radius=20,
+            command=self.toggle_theme,
+            font=("Poppins", 13, "bold")
+        )
+        self.theme_toggle.grid(row=0, column=1, sticky="e")
         
-        tk.Label(self.input_frame, text="Description:", font=("Poppins", 11)).grid(row=0, column=0, sticky='w', padx=(0, 5), pady=5)
-        self.desc_entry = tk.Entry(self.input_frame, font=("Poppins", 12), width=30)
-        self.desc_entry.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        # 2. Stats Dashboard Cards
+        self.stats_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.stats_frame.grid(row=1, column=0, padx=30, pady=(0, 20), sticky="ew")
+        self.stats_frame.grid_columnconfigure((0, 1), weight=1)
         
-        tk.Label(self.input_frame, text="Amount (GH₵):", font=("Poppins", 11)).grid(row=0, column=2, sticky='w', padx=10, pady=5)
-        self.amount_entry = tk.Entry(self.input_frame, font=("Poppins", 12), width=10)
-        self.amount_entry.grid(row=0, column=3, padx=5, pady=5)
+        # Total Spent Card
+        self.total_card = ctk.CTkFrame(self.stats_frame, corner_radius=15)
+        self.total_card.grid(row=0, column=0, padx=(0, 15), sticky="ew")
         
-        self.category_var = tk.StringVar()
-        categories = ["Food", "Transport", "Study", "Fun", "Other"]
-        self.category_menu = ttk.Combobox(self.input_frame, textvariable=self.category_var, values=categories, state="readonly", font=("Poppins", 11), width=10)
-        self.category_menu.set("Food")
-        self.category_menu.grid(row=0, column=4, padx=10, pady=5)
+        self.total_title = ctk.CTkLabel(self.total_card, text="Total Spent", font=("Poppins", 16))
+        self.total_title.pack(pady=(15, 0))
         
-        self.add_btn = tk.Button(self.input_frame, text="Add Expense", command=self.add_expense, 
-                                 font=("Poppins", 11, "bold"), relief=tk.FLAT, padx=10)
-        self.add_btn.grid(row=0, column=5, padx=(10, 0), pady=5)
-
-        # feedback text so the user knows what's happening
-        self.feedback_label = tk.Label(self.root, text="Welcome! Ready to track expenses.", font=("Poppins", 10, "italic"))
-        self.feedback_label.pack(fill=tk.X, padx=20, pady=(0, 10))
-
-        # main table to display expenses
-        self.list_frame = tk.Frame(self.root)
-        self.list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
+        self.total_val_label = ctk.CTkLabel(self.total_card, text="GH₵ 0.00", font=("Poppins", 28, "bold"))
+        self.total_val_label.pack(pady=(5, 15))
         
-        # Columns for Treeview (Tabular Data presentation)
-        columns = ("desc", "category", "amount")
-        self.tree = ttk.Treeview(self.list_frame, columns=columns, show="headings", selectmode="browse")
+        # Budget Status Card
+        self.status_card = ctk.CTkFrame(self.stats_frame, corner_radius=15)
+        self.status_card.grid(row=0, column=1, padx=(15, 0), sticky="ew")
+        
+        self.status_title = ctk.CTkLabel(self.status_card, text="Budget Overview", font=("Poppins", 16))
+        self.status_title.pack(pady=(15, 0))
+        
+        self.progress_bar = ctk.CTkProgressBar(self.status_card, width=250)
+        self.progress_bar.set(0)
+        self.progress_bar.pack(pady=(10, 5))
+        
+        self.status_text = ctk.CTkLabel(self.status_card, text="Safe (Limit: GH₵ 1000)", font=("Poppins", 13, "italic"))
+        self.status_text.pack(pady=(0, 15))
+        
+        # 3. Content Area (Form and Table)
+        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame.grid(row=2, column=0, padx=30, pady=0, sticky="nsew")
+        self.content_frame.grid_columnconfigure(0, weight=1)
+        self.content_frame.grid_rowconfigure(2, weight=1) # The list card
+        
+        # --- Input Card ---
+        self.input_card = ctk.CTkFrame(self.content_frame, corner_radius=15)
+        self.input_card.grid(row=0, column=0, pady=(0, 20), sticky="ew")
+        self.input_card.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        
+        # Row 0: Labels
+        ctk.CTkLabel(self.input_card, text="Item Description:", font=("Poppins", 14, "bold")).grid(row=0, column=0, padx=(20, 10), pady=(15, 0), sticky="w")
+        ctk.CTkLabel(self.input_card, text="Amount (GH₵):", font=("Poppins", 14, "bold")).grid(row=0, column=1, padx=10, pady=(15, 0), sticky="w")
+        ctk.CTkLabel(self.input_card, text="Category:", font=("Poppins", 14, "bold")).grid(row=0, column=2, padx=10, pady=(15, 0), sticky="w")
+        
+        # Row 1: Input Fields
+        self.desc_entry = ctk.CTkEntry(self.input_card, placeholder_text="e.g. Lunch", height=45, font=("Poppins", 14))
+        self.desc_entry.grid(row=1, column=0, padx=(20, 10), pady=(5, 20), sticky="ew")
+        
+        self.amount_entry = ctk.CTkEntry(self.input_card, placeholder_text="0.00", height=45, font=("Poppins", 14))
+        self.amount_entry.grid(row=1, column=1, padx=10, pady=(5, 20), sticky="ew")
+        
+        self.category_var = tk.StringVar(value="Food")
+        self.category_menu = ctk.CTkComboBox(
+            self.input_card, 
+            values=["Food", "Transport", "Study", "Fun", "Other"],
+            variable=self.category_var,
+            height=45,
+            font=("Poppins", 14)
+        )
+        self.category_menu.grid(row=1, column=2, padx=10, pady=(5, 20), sticky="ew")
+        
+        self.add_btn = ctk.CTkButton(
+            self.input_card, 
+            text="Add Expense", 
+            command=self.add_expense,
+            font=("Poppins", 14, "bold"),
+            height=45,
+            corner_radius=10
+        )
+        self.add_btn.grid(row=1, column=3, padx=(10, 20), pady=(5, 20), sticky="ew")
+        
+        # --- List Card ---
+        self.list_card = ctk.CTkFrame(self.content_frame, corner_radius=15)
+        self.list_card.grid(row=2, column=0, sticky="nsew")
+        self.list_card.grid_columnconfigure(0, weight=1)
+        self.list_card.grid_rowconfigure(0, weight=1)
+        
+        # Treeview Configuration
+        self.tree_style = ttk.Style()
+        self.tree_style.theme_use("clam")
+        self.configure_tree_style()
+        
+        self.tree_frame = tk.Frame(self.list_card, bg="#FFFFFF") 
+        self.tree_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
+        
+        columns = ("date", "desc", "category", "amount")
+        self.tree = ttk.Treeview(self.tree_frame, columns=columns, show="headings", selectmode="browse")
+        self.tree.heading("date", text="Date & Time")
         self.tree.heading("desc", text="Description")
         self.tree.heading("category", text="Category")
         self.tree.heading("amount", text="Amount (GH₵)")
         
-        self.tree.column("desc", width=250)
-        self.tree.column("category", width=120, anchor=tk.CENTER)
-        self.tree.column("amount", width=100, anchor=tk.E)
+        self.tree.column("date", width=250, anchor="center")
+        self.tree.column("desc", width=300)
+        self.tree.column("category", width=150, anchor="center")
+        self.tree.column("amount", width=120, anchor="e")
         
-        # Scrollbar integration
-        scrollbar = ttk.Scrollbar(self.list_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(self.tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # --- Footer ---
+        self.footer_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.footer_frame.grid(row=3, column=0, padx=30, pady=20, sticky="ew")
+        
+        self.feedback_label = ctk.CTkLabel(self.footer_frame, text="Ready to track.", font=("Poppins", 14))
+        self.feedback_label.pack(side="left")
+        
+        self.delete_btn = ctk.CTkButton(
+            self.footer_frame, 
+            text="Delete Selected", 
+            command=self.delete_expense,
+            fg_color="#EF4444", 
+            hover_color="#DC2626",
+            font=("Poppins", 13, "bold"),
+            height=35,
+            corner_radius=10
+        )
+        self.delete_btn.pack(side="right")
 
-        # 4. Bottom Frame (Total & Delete Actions)
-        self.bottom_frame = tk.Frame(self.root)
-        self.bottom_frame.pack(fill=tk.X, padx=20, pady=20)
+    def configure_tree_style(self):
+        appearance = ctk.get_appearance_mode()
+        c = self.colors[appearance.lower()]
         
-        # showing the live total at the bottom
-        self.total_label = tk.Label(self.bottom_frame, text="Total: GH₵0.00", font=("Poppins", 16, "bold"))
-        self.total_label.pack(side=tk.LEFT)
-        
-        # delete row button
-        self.delete_btn = tk.Button(self.bottom_frame, text="Delete Selected", command=self.delete_expense, 
-                                    font=("Poppins", 11, "bold"), relief=tk.FLAT, padx=10, pady=5)
-        self.delete_btn.pack(side=tk.RIGHT)
+        self.tree_style.configure(
+            "Treeview",
+            background=c["card"],
+            foreground=c["text"],
+            fieldbackground=c["card"],
+            rowheight=45, # Taller rows for the bigger font
+            font=("Poppins", 14) # Increased font size as requested
+        )
+        self.tree_style.map(
+            "Treeview",
+            background=[("selected", c["accent"])],
+            foreground=[("selected", "#FFFFFF")]
+        )
+        self.tree_style.configure(
+            "Treeview.Heading",
+            background=c["bg"],
+            foreground=c["text"],
+            font=("Poppins", 14, "bold"),
+            borderwidth=0
+        )
 
-        # Style Treeview a bit
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
-
-    def apply_theme(self):
-        """Update colors of widgets based on light/dark mode."""
-        c = self.colors_dark if self.is_dark_mode else self.colors_light
-        self.c = c
-        
-        # Backgrounds
-        self.root.configure(bg=c['bg'])
-        self.header_frame.configure(bg=c['bg'])
-        self.input_frame.configure(bg=c['bg'])
-        self.list_frame.configure(bg=c['bg'])
-        self.bottom_frame.configure(bg=c['bg'])
-        
-        # Labels and specific widgets
-        self.title_label.configure(bg=c['bg'], fg=c['fg'])
-        self.toggle_btn.configure(bg=c['btn_bg'], fg=c['fg'], activebackground=c['btn_bg'], activeforeground=c['fg'])
-        
-        for child in self.input_frame.winfo_children():
-            if isinstance(child, tk.Label):
-                child.configure(bg=c['bg'], fg=c['fg'])
-            elif isinstance(child, tk.Entry) and not isinstance(child, ttk.Combobox):
-                child.configure(bg=c['entry_bg'], fg=c['fg'], insertbackground=c['fg'])
-
-        # Accent Buttons
-        self.add_btn.configure(bg=c['highlight'], fg=c['highlight_fg'], activebackground=c['highlight'], activeforeground=c['highlight_fg'])
-        self.delete_btn.configure(bg=c['error'], fg=c['error_fg'], activebackground=c['error'], activeforeground=c['error_fg'])
-        
-        self.feedback_label.configure(bg=c['bg'], fg=c['fg'])
-        self.total_label.configure(bg=c['bg'], fg=c['fg'])
-        
-        # Treeview and Combobox coloring
-        self.style.configure("Treeview", 
-                             background=c['list_bg'], 
-                             fieldbackground=c['list_bg'], 
-                             foreground=c['fg'],
-                             font=("Poppins", 10),
-                             rowheight=25)
-        self.style.map('Treeview', background=[('selected', c['highlight'])], foreground=[('selected', c['highlight_fg'])])
-        self.style.configure("Treeview.Heading", 
-                             background=c['btn_bg'], 
-                             foreground=c['fg'], 
-                             font=("Poppins", 10, "bold"))
-        
-        # Configure Dropdown (Combobox) styles
-        self.style.configure("TCombobox", 
-                             fieldbackground=c['entry_bg'], 
-                             background=c['btn_bg'], 
-                             foreground=c['fg'],
-                             selectbackground=c['highlight'],
-                             selectforeground=c['highlight_fg'])
-        
-        # Ensure total color is correctly updated based on current value when theme changes
-        self.update_total()
-
-
-    def toggle_dark_mode(self):
-        """Toggle the application theme between Light and Dark."""
-        self.is_dark_mode = not self.is_dark_mode
-        self.toggle_btn.config(text="☀️ Light Mode" if self.is_dark_mode else "🌙 Dark Mode")
-        self.apply_theme()
+    def toggle_theme(self):
+        new_mode = "dark" if ctk.get_appearance_mode() == "Light" else "light"
+        ctk.set_appearance_mode(new_mode)
+        self.theme_toggle.configure(text="☀️ Light Mode" if new_mode == "dark" else "🌙 Dark Mode")
+        self.after(100, self.configure_tree_style)
         self.show_feedback("Theme updated.", "success")
 
     def show_feedback(self, message, msg_type="default"):
-        """Displays temporary feedback messages to the user."""
-        c = self.c
-        color = c['fg']
-        if msg_type == "error": color = c['error']
-        elif msg_type == "success": color = c['success']
-        
-        self.feedback_label.config(text=message, fg=color)
-        
-        # Clear feedback after 3 seconds asynchronously
+        appearance = ctk.get_appearance_mode().lower()
+        colors = self.colors[appearance]
+        color = colors["text"]
+        if msg_type == "error": color = colors["error"]
+        elif msg_type == "success": color = colors["success"]
+        self.feedback_label.configure(text=message, text_color=color)
         if self._feedback_timer is not None:
-            self.root.after_cancel(self._feedback_timer)
-        self._feedback_timer = self.root.after(3000, lambda: self.feedback_label.config(text="", fg=c['fg']))
+            self.after_cancel(self._feedback_timer)
+        self._feedback_timer = self.after(3000, lambda: self.feedback_label.configure(text="", text_color=colors["text"]))
 
     def add_expense(self):
-        """Adds a new expense item to the tracker."""
         desc = self.desc_entry.get().strip()
         amt_str = self.amount_entry.get().strip()
         cat = self.category_var.get()
         
-        # catching empty inputs and invalid numbers to prevent crashes
         if not desc:
-            self.show_feedback("Error: Description cannot be empty!", "error")
+            self.show_feedback("Error: Description required!", "error")
             return
-            
-        if not amt_str:
-            self.show_feedback("Error: Amount cannot be empty!", "error")
-            return
-            
         try:
             amount = float(amt_str)
             if amount <= 0:
-                self.show_feedback("Error: Amount must be greater than zero!", "error")
+                self.show_feedback("Error: Value must be positive!", "error")
                 return
         except ValueError:
-            self.show_feedback("Error: Amount must be a valid number!", "error")
+            self.show_feedback("Error: Invalid amount!", "error")
             return
             
-        # save it to the python data list
-        self.expenses.append((desc, cat, amount))
+        timestamp = datetime.now().strftime("%b %d, %Y — %I:%M %p")
+        self.expenses.append((timestamp, desc, cat, amount))
+        self.tree.insert("", tk.END, values=(timestamp, desc, cat, f"{amount:.2f}"))
         
-        # Add to UI treeview
-        self.tree.insert("", tk.END, values=(desc, cat, f"{amount:.2f}"))
-        
-        self.update_total()
-        
-        # Reset inputs for next entry
+        self.update_stats()
         self.desc_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
-        
-        # show success message popup
-        self.show_feedback(f"Expense '{desc}' added successfully!", "success")
+        self.show_feedback(f"Added '{desc}'", "success")
 
     def delete_expense(self):
-        """Deletes the selected expense item."""
         selected_item = self.tree.selection()
         if not selected_item:
-            self.show_feedback("Please select an item to delete first.", "error")
+            self.show_feedback("No item selected.", "error")
             return
-            
         for item in selected_item:
             values = self.tree.item(item, "values")
-            desc, cat, amt_str = values
-            
-            # Remove from backend data list
+            timestamp, desc, cat, amt_str = values
             for i, exp in enumerate(self.expenses):
-                # Match by value approximation
-                if exp[0] == desc and exp[1] == cat and f"{exp[2]:.2f}" == amt_str:
+                if exp[0] == timestamp and exp[1] == desc and exp[2] == cat and f"{exp[3]:.2f}" == amt_str:
                     self.expenses.pop(i)
                     break
-                    
-            # Remove from UI
             self.tree.delete(item)
-            
-        self.update_total()
-        self.show_feedback("Expense item deleted.", "success")
+        self.update_stats()
+        self.show_feedback("Deleted item.", "success")
 
-    def update_total(self):
-        """Updates the running total based on current expenses."""
-        self.total_amount = sum(exp[2] for exp in self.expenses)
-        
-        # Color the total red if it gets over 1000 (just a cool little UI detail)
-        self.total_label.config(text=f"Total: GH₵{self.total_amount:.2f}")
-        
-        if self.total_amount > 1000:
-            self.total_label.config(fg=self.c['error'])
+    def update_stats(self):
+        self.total_amount = sum(exp[3] for exp in self.expenses)
+        self.total_val_label.configure(text=f"GH₵ {self.total_amount:.2f}")
+        progress = min(self.total_amount / self.budget_limit, 1.0)
+        self.progress_bar.set(progress)
+        appearance = ctk.get_appearance_mode().lower()
+        colors = self.colors[appearance]
+        if self.total_amount <= 0:
+             self.progress_bar.configure(progress_color=colors["border"])
         else:
-            self.total_label.config(fg=self.c['fg'])
+             self.progress_bar.configure(progress_color=colors["accent"])
+        if self.total_amount > self.budget_limit:
+            self.total_val_label.configure(text_color=colors["error"])
+            self.status_text.configure(text="Warning: Budget Exceeded!", text_color=colors["error"])
+            self.progress_bar.configure(progress_color=colors["error"])
+        else:
+            self.total_val_label.configure(text_color=colors["text"])
+            self.status_text.configure(text="Safe (Limit: GH₵ 1000)", text_color=colors["text"])
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = ExpenseTracker(root)
-    root.mainloop()
+    app = ExpenseTracker()
+    app.mainloop()
+
