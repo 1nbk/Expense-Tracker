@@ -15,7 +15,7 @@ class ExpenseTracker:
         self.total_amount = 0.0
         self._feedback_timer = None
         
-        # UI Attributes (initialized to None for type checker)
+        # UI variables so pyre2 doesn't complain later
         self.header_frame: Any = None
         self.title_label: Any = None
         self.toggle_btn: Any = None
@@ -33,7 +33,7 @@ class ExpenseTracker:
         self.delete_btn: Any = None
         self.style: Any = None
         
-        # --- HCI Principle: Consistency & Standards (Color Palette) ---
+        # consistent color palette dictionary for styling
         self.colors_light = {
             'bg': '#f4f6f8',
             'fg': '#333333',
@@ -72,7 +72,7 @@ class ExpenseTracker:
         self.title_label = tk.Label(self.header_frame, text="Expense Tracker", font=("Poppins", 18, "bold"))
         self.title_label.pack(side=tk.LEFT)
         
-        # --- Mandatory Feature: Dark Mode Toggle ---
+        # dark mode switch
         self.toggle_btn = tk.Button(self.header_frame, text="🌙 Dark Mode", command=self.toggle_dark_mode, 
                                     relief=tk.FLAT, font=("Poppins", 10, "bold"), padx=10, pady=5)
         self.toggle_btn.pack(side=tk.RIGHT)
@@ -102,11 +102,11 @@ class ExpenseTracker:
                                  font=("Poppins", 11, "bold"), relief=tk.FLAT, padx=10)
         self.add_btn.grid(row=0, column=5, padx=(10, 0), pady=5)
 
-        # --- HCI Principle: Clear Feedback / Visibility of System Status ---
+        # feedback text so the user knows what's happening
         self.feedback_label = tk.Label(self.root, text="Welcome! Ready to track expenses.", font=("Poppins", 10, "italic"))
         self.feedback_label.pack(fill=tk.X, padx=20, pady=(0, 10))
 
-        # 3. List Area (HCI Principle: Recognition rather than recall)
+        # main table to display expenses
         self.list_frame = tk.Frame(self.root)
         self.list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
         
@@ -132,11 +132,11 @@ class ExpenseTracker:
         self.bottom_frame = tk.Frame(self.root)
         self.bottom_frame.pack(fill=tk.X, padx=20, pady=20)
         
-        # --- HCI Principle: Visibility of system status (Running total) ---
+        # showing the live total at the bottom
         self.total_label = tk.Label(self.bottom_frame, text="Total: GH₵0.00", font=("Poppins", 16, "bold"))
         self.total_label.pack(side=tk.LEFT)
         
-        # --- HCI Principle: User control and freedom (Delete function) ---
+        # delete row button
         self.delete_btn = tk.Button(self.bottom_frame, text="Delete Selected", command=self.delete_expense, 
                                     font=("Poppins", 11, "bold"), relief=tk.FLAT, padx=10, pady=5)
         self.delete_btn.pack(side=tk.RIGHT)
@@ -226,7 +226,7 @@ class ExpenseTracker:
         amt_str = self.amount_entry.get().strip()
         cat = self.category_var.get()
         
-        # --- HCI Principle: Error Prevention ---
+        # catching empty inputs and invalid numbers to prevent crashes
         if not desc:
             self.show_feedback("Error: Description cannot be empty!", "error")
             return
@@ -244,7 +244,7 @@ class ExpenseTracker:
             self.show_feedback("Error: Amount must be a valid number!", "error")
             return
             
-        # Add to data list (No database needed per requirements)
+        # save it to the python data list
         self.expenses.append((desc, cat, amount))
         
         # Add to UI treeview
@@ -256,7 +256,7 @@ class ExpenseTracker:
         self.desc_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
         
-        # --- HCI Principle: Clear feedback ---
+        # show success message popup
         self.show_feedback(f"Expense '{desc}' added successfully!", "success")
 
     def delete_expense(self):
