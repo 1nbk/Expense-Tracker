@@ -222,7 +222,19 @@ class ExpenseTracker(ctk.CTk):
             height=35,
             corner_radius=10
         )
-        self.delete_btn.pack(side="right")
+        self.delete_btn.pack(side="right", padx=(10, 0))
+        
+        self.clear_all_btn = ctk.CTkButton(
+            self.footer_frame, 
+            text="Clear All Expenses", 
+            command=self.clear_all_expenses,
+            fg_color="#F59E0B", # Amber/Orange
+            hover_color="#D97706",
+            font=("Poppins", 13, "bold"),
+            height=35,
+            corner_radius=10
+        )
+        self.clear_all_btn.pack(side="right")
 
         # Initial stats update
         self.update_stats()
@@ -270,16 +282,23 @@ class ExpenseTracker(ctk.CTk):
         new_mode = "dark" if ctk.get_appearance_mode() == "Light" else "light"
         ctk.set_appearance_mode(new_mode)
         self.theme_toggle.configure(text="☀️ Light Mode" if new_mode == "dark" else "🌙 Dark Mode")
-        self.after(100, self.configure_tree_style)
+        
+        # Wait a moment for mode to propagate, then refresh styles
+        self.after(50, self.configure_tree_style)
+        self.after(100, self.update_stats)
         self.show_feedback("Theme updated.", "success")
 
     def show_feedback(self, message, msg_type="default"):
+        # Explicitly get the mode since it might have just changed
         appearance = ctk.get_appearance_mode().lower()
         colors = self.colors[appearance]
+        
         color = colors["text"]
         if msg_type == "error": color = colors["error"]
         elif msg_type == "success": color = colors["success"]
+        
         self.feedback_label.configure(text=message, text_color=color)
+        
         if self._feedback_timer is not None:
             self.after_cancel(self._feedback_timer)
         self._feedback_timer = self.after(3000, lambda: self.feedback_label.configure(text="", text_color=colors["text"]))
@@ -289,32 +308,59 @@ class ExpenseTracker(ctk.CTk):
         amt_str = self.amount_entry.get().strip()
         cat = self.category_var.get()
         
+        # HCI: Validation (Error Prevention)
         if not desc:
             self.show_feedback("Error: Description required!", "error")
             return
+            
         try:
             amount = float(amt_str)
             if amount <= 0:
-                self.show_feedback("Error: Value must be positive!", "error")
-                return
+                 self.show_feedback("Error: Value must be positive!", "error")
+                 return
+                 
+            # HCI: Confirmation (Error Prevention)
+            msg = f"Confirm Expense Entry:\n\nItem: {desc}\nAmount: GH₵ {amount:.2f}\nCategory: {cat}"
+            
+            # High-Importance Alert: Potential Budget Slip
+            if self.total_amount + amount > self.budget_limit:
+                 msg += f"\n\n⚠️ WARNING: This entry will EXCEED your monthly budget of GH₵ {self.budget_limit:.0f}!"
+            
+            confirm = messagebox.askyesno("Confirm Add", msg)
+            if not confirm:
+                 self.show_feedback("Entry cancelled.", "default")
+                 return
+                 
+            timestamp = datetime.now().strftime("%b %d, %Y — %I:%M %p")
+            self.expenses.append((timestamp, desc, cat, amount))
+            self.tree.insert("", tk.END, values=(timestamp, desc, cat, f"{amount:.2f}"))
+            
+            self.update_stats()
+            self.show_feedback(f"Added '{desc}'", "success")
+            
+            # HCI: Clear form for fast entry
+            self.clear_form()
+            
         except ValueError:
             self.show_feedback("Error: Invalid amount!", "error")
-            return
-            
-        timestamp = datetime.now().strftime("%b %d, %Y — %I:%M %p")
-        self.expenses.append((timestamp, desc, cat, amount))
-        self.tree.insert("", tk.END, values=(timestamp, desc, cat, f"{amount:.2f}"))
-        
-        self.update_stats()
+            self.amount_entry.delete(0, tk.END)
+
+    def clear_form(self):
         self.desc_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
-        self.show_feedback(f"Added '{desc}'", "success")
+        self.desc_entry.focus()
 
     def delete_expense(self):
         selected_item = self.tree.selection()
         if not selected_item:
             self.show_feedback("No item selected.", "error")
             return
+            
+        # HCI: Confirmation for destructive action
+        confirm = messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this expense?")
+        if not confirm:
+            return
+            
         for item in selected_item:
             values = self.tree.item(item, "values")
             timestamp, desc, cat, amt_str = values
@@ -323,8 +369,23 @@ class ExpenseTracker(ctk.CTk):
                     self.expenses.pop(i)
                     break
             self.tree.delete(item)
+            
         self.update_stats()
         self.show_feedback("Deleted item.", "success")
+
+    def clear_all_expenses(self):
+        if not self.expenses:
+            self.show_feedback("No expenses to clear.", "error")
+            return
+            
+        # HCI: Strong Confirmation for bulk deletion
+        confirm = messagebox.askyesno("Confirm DANGER", "DANGER: This will delete ALL expense records. Are you sure?")
+        if confirm:
+            self.expenses = []
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            self.update_stats()
+            self.show_feedback("All records cleared.", "success")
 
     def update_budget(self):
         if self._budget_locked:

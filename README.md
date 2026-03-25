@@ -1,22 +1,48 @@
-# Student Expense Tracker
+# 📊 Student Expense Tracker (HCI v3.0)
 
-This is a Python GUI application built for the CSM 357 Human-Computer Interaction assignment. It helps students quickly track their daily expenses like food, transport, and study materials. The main focus of this project is on usability and applying good HCI principles to make the interface clean and easy to understand.
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![UI](https://img.shields.io/badge/CustomTkinter-v5.2-FF9F00?style=for-the-badge)](https://github.com/TomSchimansky/CustomTkinter)
+[![HCI](https://img.shields.io/badge/HCI--Principles-Compliant-success?style=for-the-badge)](https://en.wikipedia.org/wiki/Human%E2%80%93computer_interaction)
 
-## Features (v2.0 Modern)
-- **Premium Modern UI**: Built with `customtkinter` for a sleek, rounded-corner aesthetic.
-- **Budget Dashboard**: Visual cards showing Total Spent and a dynamic progress bar for budget status.
-- **Dynamic Feedback**: Real-time color-coded warnings if the student exceeds the GH₵ 1000 budget.
-- **Enhanced Dark/Light Mode**: Seamless theme switching with consistent typography.
-- **HCI Principles in Practice**: Improved visual hierarchy, recognition via dashboard stats, and cleaner spacing.
+> A premium, highly-usable financial assistant designed for students. Developed for the CSM 357 Human-Computer Interaction assignment with a focus on **Error Prevention**, **Visibility of System Status**, and **Modern Aesthetics**.
 
-## HCI Principles Applied
-1. **Recognition rather than Recall**: The new Budget Dashboard provides an instant snapshot of financial status, reducing cognitive load.
-2. **Consistency and Standards**: Leverages the `customtkinter` library for a native, modern feel that students expect in 2024.
-3. **Visibility of System Status**: The progress bar and color-coded total (turning red over GH₵ 1000) provide clear, immediate feedback on budget health.
-4. **Aesthetic and Minimalist Design**: Cards and "breathable" whitespace focus the user's attention on the most important data.
+---
 
-## How to Run
-1. Make sure you have standard Python installed on your computer.
-2. Clone or download this project folder.
-3. Open a terminal or command prompt in the folder and run:
-   `python expense_tracker.py`
+## ✨ Premium Features
+
+- **📊 Intelligent Dashboard**: Real-time cards showcasing total spend and a dynamic, percentage-based budget overview.
+- **🎯 Dynamic Monthly Budgeting**: Configure and lock your monthly financial goals with official confirmation steps.
+- **🛡️ Error-Proof Interaction**: Mandatory confirmation dialogs for all critical actions (Add/Delete/Clear) to eliminate accidental slips.
+- **⚠️ Proactive Budget Alerts**: Receive instant warnings *before* you commit an expense if it pushes you over your limit.
+- **🌓 Adaptive Universal Theme**: A stunning dark and light mode system that recalibrates every UI element for perfect contrast.
+- **📅 HCI-Friendly Data**: Human-readable date/time formats and high-visibility "Poppins" typography for maximum accessibility.
+
+## 🧠 HCI Principles Applied
+
+- **Visibility of System Status**: Live color-coded feedback (Green/Red) provides immediate insight into financial health.
+- **Error Prevention**: "Check-then-Confirm" flow for all destructive or significant operations.
+- **Recognition over Recall**: Minimalist, card-based groupings ensure that the most important data is always visible at a glance.
+- **Consistency & Standards**: Adherence to modern UI design tokens and native platform behaviors.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+Ensure you have **Python 3.10+** installed on your system.
+
+### 2. Installation
+Install the required modern UI components:
+```bash
+pip install customtkinter
+```
+
+### 3. Execution
+Launch the application:
+```bash
+python expense_tracker.py
+```
+
+---
+
+*Designed with ❤️ for better student financial wellness.*
