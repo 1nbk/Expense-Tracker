@@ -321,9 +321,14 @@ class ExpenseTracker(ctk.CTk):
         appearance = ctk.get_appearance_mode().lower()
         colors = self.colors[appearance]
         
+        # Explicit trough color for the progress bar (grayish)
+        trough_color = "#E2E8F0" if appearance == "light" else "#334155"
+        self.progress_bar.configure(fg_color=trough_color)
+        
         # Color coding stats and progress
         if self.total_amount <= 0:
-             self.progress_bar.configure(progress_color=colors["border"])
+             # Make it look completely empty at 0
+             self.progress_bar.configure(progress_color=trough_color)
              self.percentage_label.configure(text_color=colors["text"])
         elif self.total_amount > self.budget_limit:
             self.total_val_label.configure(text_color=colors["error"])
