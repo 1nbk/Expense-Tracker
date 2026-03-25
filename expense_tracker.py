@@ -161,11 +161,12 @@ class ExpenseTracker(ctk.CTk):
         # Treeview Configuration
         self.tree_style = ttk.Style()
         self.tree_style.theme_use("clam")
-        self.configure_tree_style()
         
         initial_bg = self.colors["light"]["card"] if ctk.get_appearance_mode() == "Light" else self.colors["dark"]["card"]
         self.tree_frame = tk.Frame(self.list_card, bg=initial_bg) 
         self.tree_frame.grid(row=0, column=0, padx=15, pady=15, sticky="nsew")
+        
+        self.configure_tree_style()
         
         columns = ("date", "desc", "category", "amount")
         self.tree = ttk.Treeview(self.tree_frame, columns=columns, show="headings", selectmode="browse")
@@ -203,6 +204,9 @@ class ExpenseTracker(ctk.CTk):
             corner_radius=10
         )
         self.delete_btn.pack(side="right")
+
+        # Initial stats update
+        self.update_stats()
 
     def configure_tree_style(self):
         appearance = ctk.get_appearance_mode()
